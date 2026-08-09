@@ -1,11 +1,10 @@
-const FranchiseUtils = require('../Utils/FranchiseUtils');
-const StartTodayUtils = require('./StartTodayUtils');
-const axios = require('axios');
-const cheerio = require('cheerio');
-const fs = require('fs');
-const path = require('path');
-const prompt = require('prompt-sync')();
-
+const FranchiseUtils = require("../Utils/FranchiseUtils");
+const StartTodayUtils = require("./StartTodayUtils");
+const axios = require("axios");
+const cheerio = require("cheerio");
+const fs = require("fs");
+const path = require("path");
+const prompt = require("prompt-sync")();
 
 const CBS_URL = "https://www.cbssports.com/nfl/injuries/";
 const ASSET_FILE_NAME = "cbs_assetlookup.json";
@@ -17,20 +16,30 @@ const COL_POSITION = "Position";
 const COL_URL = "URL";
 
 const TEAM_NAME_MAP = {
-  'JAC': 'JAX'
+  JAC: "JAX",
+  ARI: "AZ",
 };
 
 let INJURY_TYPES = [];
 
 const INJURY_TYPES_TO_REMOVE = ["Invalid_", "Max_", "DoNotUse"];
 
-const validGameYears = [
-  FranchiseUtils.YEARS.M24,
-  FranchiseUtils.YEARS.M25,
-];
+const validGameYears = [FranchiseUtils.YEARS.M24, FranchiseUtils.YEARS.M25, FranchiseUtils.YEARS.M26];
 
 console.log("This program will update injuries for all players, based on CBS Sports.");
-const INCLUDE_QUESTIONABLE_PLAYERS = FranchiseUtils.getYesOrNo("Should players listed as questionable be included? Enter yes or no.");
+const ONLY_IR_PLAYERS = FranchiseUtils.getYesOrNo("Should only IR players be included? Enter yes or no.");
+
+const INCLUDE_QUESTIONABLE_PLAYERS = ONLY_IR_PLAYERS
+  ? false
+  : FranchiseUtils.getYesOrNo("Should players listed as questionable be included? Enter yes or no.");
+
+const DEFAULT_INJURY_WEEKS =
+  ONLY_IR_PLAYERS &&
+  FranchiseUtils.getYesOrNo(
+    "Would you like to set a default injury week amount for all IR players (For use in Preseason week 1 for example)? Enter yes or no.",
+  )
+    ? FranchiseUtils.getUserInputNumber(`How many weeks should IR players be injured?`, 0, 63)
+    : -1;
 
 const franchise = FranchiseUtils.init(validGameYears);
 const tables = FranchiseUtils.getTablesObject(franchise);
@@ -40,40 +49,38 @@ const FILE_PATH = path.join(__dirname, `${String(franchise.schema.meta.gameYear)
 // If the file doesn't exist, create it with an empty object
 if (!fs.existsSync(FILE_PATH)) {
   fs.mkdirSync(path.dirname(FILE_PATH), { recursive: true });
-  fs.writeFileSync(FILE_PATH, '{}', 'utf8');
+  fs.writeFileSync(FILE_PATH, "{}", "utf8");
 }
 
-const ALL_ASSETS = JSON.parse(fs.readFileSync(FILE_PATH, 'utf8'));
+const ALL_ASSETS = JSON.parse(fs.readFileSync(FILE_PATH, "utf8"));
 
 async function fetchInjuryReport() {
   const response = await axios.get(CBS_URL);
   const $ = cheerio.load(response.data);
 
   // Remove short names
-  $('span.CellPlayerName--short').remove();
+  $("span.CellPlayerName--short").remove();
 
   const teamInjuryReports = [];
 
-  $('div.TableBaseWrapper').each((_, el) => {
+  $("div.TableBaseWrapper").each((_, el) => {
     const $wrapper = $(el);
-    const teamName = $wrapper.find('span.TeamName').text().trim();
-    const teamLink = $wrapper
-      .find('.TeamLogoNameLockup-name a')
-      .attr('href') || '';
+    const teamName = $wrapper.find("span.TeamName").text().trim();
+    const teamLink = $wrapper.find(".TeamLogoNameLockup-name a").attr("href") || "";
 
-    const rawShortName = teamLink.split('/')[3] || '';
+    const rawShortName = teamLink.split("/")[3] || "";
     const shortName = TEAM_NAME_MAP[rawShortName] || rawShortName;
 
     const players = [];
 
     const headers = [];
-    $wrapper.find('th').each((_, th) => {
+    $wrapper.find("th").each((_, th) => {
       headers.push($(th).text().trim());
     });
 
-    $wrapper.find('tr.TableBase-bodyTr').each((_, row) => {
+    $wrapper.find("tr.TableBase-bodyTr").each((_, row) => {
       const $row = $(row);
-      const cells = $row.find('td');
+      const cells = $row.find("td");
       if (cells.length === headers.length) {
         const player = {};
 
@@ -82,20 +89,19 @@ async function fetchInjuryReport() {
 
           // Extract full player name and URL
           if (i === 0) {
-            const anchor = cell.find('a').first();
+            const anchor = cell.find("a").first();
             const name = anchor.text().trim();
-            const href = anchor.attr('href');
+            const href = anchor.attr("href");
             player[COL_PLAYERNAME] = name;
-            player[COL_URL] = href
-              ? `https://www.cbssports.com${href}`
-              : null;
+            player[COL_URL] = href ? `https://www.cbssports.com${href}` : null;
           } else {
             player[headers[i]] = cell.text().trim();
           }
         });
 
-        const status = (player[COL_INJURYSTATUS] || '').toLowerCase();
-        if (!INCLUDE_QUESTIONABLE_PLAYERS && status.includes('questionable')) {
+        const status = (player[COL_INJURYSTATUS] || "").toLowerCase();
+        if (ONLY_IR_PLAYERS && !status.includes("injured reserve")) return;
+        if (!INCLUDE_QUESTIONABLE_PLAYERS && status.includes("questionable")) {
           return; // Skip player
         }
         players.push(player);
@@ -107,7 +113,7 @@ async function fetchInjuryReport() {
         team: teamName,
         shortName: shortName,
         url: CBS_URL,
-        players
+        players,
       });
     }
   });
@@ -134,7 +140,7 @@ async function parsePlayerProfile(url) {
       if (error.response) {
         if (error.response.status === 503) {
           console.warn(`503 for ${url} — retrying after delay...`);
-          await new Promise(resolve => setTimeout(resolve, retryDelay));
+          await new Promise((resolve) => setTimeout(resolve, retryDelay));
           response = await axios.get(url, axiosConfig);
         } else if (error.response.status === 400) {
           const finalUrl = error.response.request?.res?.responseUrl || url;
@@ -153,26 +159,25 @@ async function parsePlayerProfile(url) {
     let age = null;
     let experience = null;
 
-    $('div.TableBaseWrapper tr.TableBase-bodyTr td').each((_, el) => {
+    $("div.TableBaseWrapper tr.TableBase-bodyTr td").each((_, el) => {
       const text = $(el).text().trim();
 
-      if (text.startsWith('Age:')) {
+      if (text.startsWith("Age:")) {
         const match = text.match(/Age:\s*(\d+)/);
         if (match) age = parseInt(match[1], 10);
       }
 
-      if (text.startsWith('School:')) {
-        school = text.replace('School:', '').trim();
+      if (text.startsWith("School:")) {
+        school = text.replace("School:", "").trim();
       }
 
-      if (text.startsWith('Experience:')) {
+      if (text.startsWith("Experience:")) {
         const match = text.match(/Experience:\s*(\d+)/);
         if (match) experience = parseInt(match[1], 10);
       }
     });
 
     return { school, age, experience };
-
   } catch (err) {
     console.error(`Failed to parse CBS profile: ${url}`, err.message);
     return { school: null, age: null, experience: null };
@@ -205,8 +210,14 @@ function selectInjury(injuryRecord, playerRecord) {
   const selectedInjury = FranchiseUtils.getUserSelection(`Select the injury type for ${name}`, INJURY_TYPES);
   const finalInjury = selectedInjury === "ACL" ? "KneeACLCompleteTear" : selectedInjury;
 
-  const weeksInjured = FranchiseUtils.getUserInputNumber(`How many weeks should ${name} be injured?`, 0, 63);
-  const isInjuredReserve = FranchiseUtils.getYesOrNo(`Should ${name} be placed on IR? Enter yes or no`, true);
+  const weeksInjured =
+    DEFAULT_INJURY_WEEKS !== -1
+      ? DEFAULT_INJURY_WEEKS
+      : FranchiseUtils.getUserInputNumber(`How many weeks should ${name} be injured?`, 0, 63);
+
+  const isInjuredReserve = ONLY_IR_PLAYERS
+    ? true
+    : FranchiseUtils.getYesOrNo(`Should ${name} be placed on IR? Enter yes or no`, true);
 
   playerRecord.InjuryType = finalInjury;
   playerRecord.MinInjuryDuration = weeksInjured;
@@ -226,15 +237,13 @@ async function handlePlayer(player, teamIndex) {
   const playerTable = franchise.getTableByUniqueId(tables.playerTable);
   const url = player[COL_URL];
   const position = player[COL_POSITION];
-  const playerName = player[COL_PLAYERNAME]
+  const playerName = player[COL_PLAYERNAME];
 
   // Use cached asset if available
   if (ALL_ASSETS.hasOwnProperty(url)) {
     const asset = ALL_ASSETS[url];
     if (!FranchiseUtils.isBlank(asset)) {
-      const assetRowIndex = playerTable.records.findIndex(
-        record => record.PLYR_ASSETNAME === asset
-      );
+      const assetRowIndex = playerTable.records.findIndex((record) => record.PLYR_ASSETNAME === asset);
       if (assetRowIndex !== -1) {
         const playerRecord = playerTable.records[assetRowIndex];
         selectInjury(player, playerRecord);
@@ -251,8 +260,8 @@ async function handlePlayer(player, teamIndex) {
     age: playerInfo.age,
     college: playerInfo.school,
     yearsPro: playerInfo.experience,
-    position: position
-  }
+    position: position,
+  };
 
   // Try high similarity first
   result = await StartTodayUtils.searchForPlayer(
@@ -262,7 +271,7 @@ async function handlePlayer(player, teamIndex) {
     0.95,
     skippedPlayers,
     teamIndex,
-    options
+    options,
   );
 
   // Retry with lower threshold if no match
@@ -271,33 +280,29 @@ async function handlePlayer(player, teamIndex) {
       franchise,
       tables,
       playerName,
-      0.60,
+      0.6,
       skippedPlayers,
       teamIndex,
-      options
+      options,
     );
   }
 
   if (result !== -1) {
-    const playerAssetName = playerTable.records[result].PLYR_ASSETNAME;
-    ALL_ASSETS[url] = playerAssetName;
+    const playerRecord = playerTable.records[result];
+    ALL_ASSETS[url] = playerRecord.PLYR_ASSETNAME;
     selectInjury(player, playerRecord);
   } else {
     ALL_ASSETS[url] = FranchiseUtils.EMPTY_STRING;
   }
 }
 
-
-franchise.on('ready', async function () {
+franchise.on("ready", async function () {
   const injuryReport = await fetchInjuryReport();
   const playerTable = franchise.getTableByUniqueId(tables.playerTable);
   const teamTable = franchise.getTableByUniqueId(tables.teamTable);
   await FranchiseUtils.readTableRecords([playerTable, teamTable]);
-  INJURY_TYPES = FranchiseUtils.getEnumValuesForField(playerTable, "InjuryType")
-  .filter(item =>
-    !INJURY_TYPES_TO_REMOVE.includes(item) &&
-    !item.startsWith('First') &&
-    !item.startsWith('Last')
+  INJURY_TYPES = FranchiseUtils.getEnumValuesForField(playerTable, "InjuryType").filter(
+    (item) => !INJURY_TYPES_TO_REMOVE.includes(item) && !item.startsWith("First") && !item.startsWith("Last"),
   );
   INJURY_TYPES.push("ACL");
 
@@ -311,13 +316,11 @@ franchise.on('ready', async function () {
     for (const player of players) {
       await handlePlayer(player, teamIndex);
     }
-    fs.writeFileSync(FILE_PATH, JSON.stringify(ALL_ASSETS, null, 2), 'utf8');
+    fs.writeFileSync(FILE_PATH, JSON.stringify(ALL_ASSETS, null, 2), "utf8");
   }
 
-
-  fs.writeFileSync(FILE_PATH, JSON.stringify(ALL_ASSETS, null, 2), 'utf8');
+  fs.writeFileSync(FILE_PATH, JSON.stringify(ALL_ASSETS, null, 2), "utf8");
   console.log("Injuries have been updated.");
   await FranchiseUtils.saveFranchiseFile(franchise);
   FranchiseUtils.EXIT_PROGRAM();
-
 });

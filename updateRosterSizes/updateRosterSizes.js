@@ -21,6 +21,7 @@ franchise.on("ready", async function () {
   await FranchiseUtils.readTableRecords([playerTable, teamTable]);
 
   await FranchiseUtils.recalculateRosterSizes(playerTable, teamTable);
+  //await FranchiseUtils.regenerateResignTables(franchise);
 
   console.log("Roster sizes have been set successfully.");
   await FranchiseUtils.saveFranchiseFile(franchise);
