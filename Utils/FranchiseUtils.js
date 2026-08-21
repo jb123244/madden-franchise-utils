@@ -295,7 +295,7 @@ function init(validGameYears, options = {}, validGameTypes = [GAME_TYPES.MADDEN]
   const {
     isAutoUnemptyEnabled = false,
     isFtcFile = false,
-    promptForBackup = true,
+    promptForBackup = true, 
     customYearMessage = null,
     customGameTypeMessage = null,
     customFranchiseMessage = null,
@@ -2417,6 +2417,28 @@ function getTableIdFromRef(binary) {
 }
 
 /**
+ * Resolves a reference binary to its target record, reading the target table first if needed.
+ * Returns null if the binary is ZERO_REF (no reference) rather than throwing, so callers can
+ * use it directly in a conditional without a separate ZERO_REF check first.
+ *
+ * @param {object} franchise
+ * @param {string} binary
+ * @returns {Promise<FranchiseFileRecord | null>}
+ */
+async function getReferencedRecord(franchise, binary) {
+  if (!binary || binary === ZERO_REF || franchise == null) return null;
+
+  const { row, tableId } = getRowAndTableIdFromRef(binary);
+  const table = franchise.getTableById(tableId);
+
+  await table.readRecords();
+  const record = table.records[row];
+  if (!record) return null;
+
+  return record;
+}
+
+/**
  * Transfers draft pick records from auxiliary tables into the main draft pick table
  * and updates references in the draft pick array table. Empties the transferred records
  * in their original tables. Returns true if any picks were moved, false otherwise.
@@ -3770,6 +3792,7 @@ module.exports = {
   getRowAndTableIdFromRef,
   getRowFromRef,
   getTableIdFromRef,
+  getReferencedRecord,
   cleanJson,
   splitDecimal,
   getPlayerReferences,
