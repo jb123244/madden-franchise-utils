@@ -1,6 +1,6 @@
 const FranchiseUtils = require("../Utils/FranchiseUtils");
 const fs = require("fs");
-const validGameYears = [FranchiseUtils.YEARS.M24, FranchiseUtils.YEARS.M25, FranchiseUtils.YEARS.M26];
+const validGameYears = [FranchiseUtils.YEARS.M24, FranchiseUtils.YEARS.M25, FranchiseUtils.YEARS.M26, FranchiseUtils.YEARS.M27];
 
 console.log("This will generate a team philosophy lookup file.");
 

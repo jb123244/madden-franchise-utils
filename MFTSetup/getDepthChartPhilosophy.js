@@ -1,8 +1,8 @@
 const FranchiseUtils = require("../Utils/FranchiseUtils");
 const fs = require("fs");
 
-const gameYear = FranchiseUtils.YEARS.M26;
-const franchise = FranchiseUtils.init(gameYear, { isFtcFile: true, promptForBackup: false });
+const validGameYears = [FranchiseUtils.YEARS.M26, FranchiseUtils.YEARS.M27];
+const franchise = FranchiseUtils.init(validGameYears, { isFtcFile: true, promptForBackup: false });
 
 function writeJSON(data, file) {
   fs.writeFileSync(file, JSON.stringify(data, null, 2), "utf8");

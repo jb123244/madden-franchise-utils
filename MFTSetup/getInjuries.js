@@ -5,10 +5,11 @@
 const FranchiseUtils = require('../Utils/FranchiseUtils');
 const COLS_TO_KEEP = ["ShortName", "LongName", "Value"];
 
-const gameYear = FranchiseUtils.YEARS.M26;
 
 // This uses the franchise-tuning-binary.FTC file 
-const franchise = FranchiseUtils.init(gameYear, {isFtcFile: true, promptForBackup: false})
+const validGameYears = [FranchiseUtils.YEARS.M26, FranchiseUtils.YEARS.M27];
+const franchise = FranchiseUtils.init(validGameYears, {isFtcFile: true, promptForBackup: false})
+
 
 franchise.on('ready', async function () {
     const injuryTable = franchise.getTableByUniqueId(2893390316);

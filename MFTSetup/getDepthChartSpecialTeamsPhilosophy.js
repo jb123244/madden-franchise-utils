@@ -2,8 +2,8 @@ const FranchiseUtils = require("../Utils/FranchiseUtils");
 const fs = require("fs");
 const { getBinaryReferenceData } = require('madden-franchise').utilService;
 
-const gameYear = FranchiseUtils.YEARS.M26;
-const franchise = FranchiseUtils.init(gameYear, {
+const validGameYears = [FranchiseUtils.YEARS.M26, FranchiseUtils.YEARS.M27];
+const franchise = FranchiseUtils.init(validGameYears, {
   isFtcFile: true,
   promptForBackup: false,
 });

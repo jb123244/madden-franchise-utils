@@ -5,9 +5,9 @@
 const FranchiseUtils = require('../Utils/FranchiseUtils');
 const FINAL_COLUMNS = ['AssetId', 'ShortName', 'LongName', 'Description', 'Value', 'Base']; // keys to keep in order
 
-const gameYear = FranchiseUtils.YEARS.M26;
+const validGameYears = [FranchiseUtils.YEARS.M26, FranchiseUtils.YEARS.M27];
 
-const franchise = FranchiseUtils.init(gameYear, {isFtcFile: true, promptForBackup: false})
+const franchise = FranchiseUtils.init(validGameYears, {isFtcFile: true, promptForBackup: false})
 
 franchise.on('ready', async function () {
     const schemeTable = franchise.getTableByUniqueId(518361666);

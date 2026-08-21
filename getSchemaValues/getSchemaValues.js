@@ -9,7 +9,7 @@ const PRINTALL_KWD = "PRINTALL";
 const PRINTALLENUM_KWD = "PRINTALLENUM";
 const PRINTALLCOLENUMS_KWD = "PRINTALLCOLENUM";
 const PRINTALLMINMAX_KWD = "PRINTALLMINMAX";
-const GENERATESCHEMA_KWD = "GENERATESCHEMA";
+const GENERATESCHEMA_KWD = "ALL";
 const validGameYears = [
   FranchiseUtils.YEARS.M20,
   FranchiseUtils.YEARS.M21,
@@ -18,6 +18,7 @@ const validGameYears = [
   FranchiseUtils.YEARS.M24,
   FranchiseUtils.YEARS.M25,
   FranchiseUtils.YEARS.M26,
+  FranchiseUtils.YEARS.M27,
 ];
 
 console.log(
@@ -105,7 +106,7 @@ function getTableField(table) {
     Enter 'printallenum' to print all enums. 
     Enter 'printallcolenum' to print ColumnNames enum. 
     Enter 'printallminmax' to print MinFieldValues / MaxFieldValues.
-    Enter 'generateschema' to generate a full .enums.ts schema file.
+    Enter 'all' to generate a full .enums.ts schema file.
     Enter 'exit' to stop searching for columns in this table.`,
     );
 
@@ -314,7 +315,7 @@ franchise.on("ready", async function () {
     const table = await getTable(franchise);
     getTableField(table);
     const message = "Do you want to select another table? Enter yes or no.";
-    const response = FranchiseUtils.getYesOrNo(message);
+    const response = FranchiseUtils.getYesOrNo(message, true);
     continueLoop = response;
   } while (continueLoop);
 

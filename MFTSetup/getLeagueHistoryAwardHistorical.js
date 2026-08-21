@@ -1,9 +1,9 @@
 const FranchiseUtils = require("../Utils/FranchiseUtils");
 
 const AWARD_COLUMNS = ["Binary", "teamIdentity", "lastName", "firstName", "AwardType", "Position"];
-
-const gameYear = FranchiseUtils.YEARS.M26;
-const ftcFranchise = FranchiseUtils.init(gameYear, { isFtcFile: true, promptForBackup: false });
+// tuning
+const validGameYears = [FranchiseUtils.YEARS.M26, FranchiseUtils.YEARS.M27];
+const ftcFranchise = FranchiseUtils.init(validGameYears, { isFtcFile: true, promptForBackup: false });
 
 ftcFranchise.on("ready", async function () {
   const awardTable = ftcFranchise.getTableByUniqueId(2234062019);

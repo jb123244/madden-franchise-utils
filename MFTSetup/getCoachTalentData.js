@@ -1,9 +1,9 @@
 const FranchiseUtils = require("../Utils/FranchiseUtils");
 
-const gameYear = FranchiseUtils.YEARS.M26;
+const validGameYears = [FranchiseUtils.YEARS.M26, FranchiseUtils.YEARS.M27];
 
 // This uses the franchise-tuning-binary.FTC file
-const franchise = FranchiseUtils.init(gameYear, { isFtcFile: true, promptForBackup: false });
+const franchise = FranchiseUtils.init(validGameYears, { isFtcFile: true, promptForBackup: false });
 const tables = FranchiseUtils.getTablesObject(franchise);
 
 /**
@@ -67,7 +67,7 @@ franchise.on("ready", async function () {
   const talentDisplayStatFtcTable = franchise.getTableByUniqueId(tables.talentDisplayStatFtcTable);
   const staffStatGoalFtcTable = franchise.getTableByUniqueId(tables.staffStatGoalFtcTable);
   const staffStatGameBasedCumulativeGoalFtcTable = franchise.getTableByUniqueId(
-    tables.staffStatGameBasedCumulativeGoalFtcTable
+    tables.staffStatGameBasedCumulativeGoalFtcTable,
   );
   const staffDynamicGoalFtcTable = franchise.getTableByUniqueId(tables.staffDynamicGoalFtcTable);
 
@@ -98,7 +98,7 @@ franchise.on("ready", async function () {
   const wearAndTearTalentInfo = await FranchiseUtils.getTableDataAsArray(
     franchise,
     wearAndTearTalentInfoFtcTable,
-    options
+    options,
   );
   const playsheetTalentInfo = await FranchiseUtils.getTableDataAsArray(franchise, playsheetTalentInfoFtcTable, options);
 
@@ -106,12 +106,12 @@ franchise.on("ready", async function () {
   const playsheetTalentTierInfo = await FranchiseUtils.getTableDataAsArray(
     franchise,
     playsheetTalentTierInfoFtcTable,
-    options
+    options,
   );
   const wearAndTearTalentTierInfo = await FranchiseUtils.getTableDataAsArray(
     franchise,
     wearAndTearTalentTierInfoFtcTable,
-    options
+    options,
   );
 
   const talentDisplayStat = await FranchiseUtils.getTableDataAsArray(franchise, talentDisplayStatFtcTable, options);
@@ -120,7 +120,7 @@ franchise.on("ready", async function () {
   const staffStatGameBasedCumulativeGoal = await FranchiseUtils.getTableDataAsArray(
     franchise,
     staffStatGameBasedCumulativeGoalFtcTable,
-    options
+    options,
   );
   const staffDynamicGoal = await FranchiseUtils.getTableDataAsArray(franchise, staffDynamicGoalFtcTable, options);
 

@@ -1,9 +1,9 @@
 const FranchiseUtils = require("../Utils/FranchiseUtils");
 
-const gameYear = FranchiseUtils.YEARS.M26;
+const validGameYears = [FranchiseUtils.YEARS.M26, FranchiseUtils.YEARS.M27];
 
 // This uses the franchise-tuning-binary.FTC file
-const franchise = FranchiseUtils.init(gameYear, { isFtcFile: true, promptForBackup: false });
+const franchise = FranchiseUtils.init(validGameYears, { isFtcFile: true, promptForBackup: false });
 
 franchise.on("ready", async function () {
   const stadiumTable = franchise.getTableByUniqueId(2401887796);
