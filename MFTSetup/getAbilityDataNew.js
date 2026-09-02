@@ -19,10 +19,7 @@ const signatureAbilities = {
   CBSignatureAbilities: {},
 };
 
-const validGameYears = [
-  FranchiseUtils.YEARS.M26,
-  FranchiseUtils.YEARS.M27,
-];
+const validGameYears = [FranchiseUtils.YEARS.M26, FranchiseUtils.YEARS.M27];
 const franchise = FranchiseUtils.init(validGameYears, { isFtcFile: true, promptForBackup: false });
 
 function writeJSON(data, file) {
@@ -35,8 +32,10 @@ franchise.on("ready", async function () {
   const PositionSignatureAbilityArray = franchise.getTableByUniqueId(3517346360);
   const PositionSignatureAbility = franchise.getTableByUniqueId(tables.positionSignatureAbilityFtcTable);
   const SignatureAbility = franchise.getTableByUniqueId(tables.signatureAbilityFtcTable);
+  const gameYear = parseInt(franchise.schema.meta.gameYear);
 
   const tableId = PositionSignatureAbility.header.tableId;
+  const signatureAbilityTableId = SignatureAbility.header.tableId;
 
   await FranchiseUtils.readTableRecords([
     SignatureAbilitiesTable,
@@ -83,7 +82,7 @@ franchise.on("ready", async function () {
       PositionSignatureAbilityArray,
       PositionSignatureAbility,
       sigRow["ActiveSignatures"],
-      PositionSignatureAbilityArray.header.recordCapacity,
+      PositionSignatureAbilityArray.header.numMembers,
     );
 
     const passive = extractAbilityIndices(
@@ -114,22 +113,42 @@ franchise.on("ready", async function () {
       const assetId = allAssets.find((a) => a.reference === assetRef)?.assetId;
       const finalBin = FranchiseUtils.dec2bin(assetId, 2);
 
-      signatureAbilities[key][abilityType].push({
-        assetId,
-        binary: finalBin,
-        Ability: ability.Name,
-        GUID: ability.GUID,
-        Description: ability.Description,
-        Disable: posAbilityRecord?.Disable ?? null,
-        ArchetypeRequirement: posAbilityRecord?.ArchetypeRequirement ?? null,
-        MaxSlotPosition: posAbilityRecord?.MaxSlotPosition ?? null,
-        MinSlotPosition: posAbilityRecord?.MinSlotPosition ?? null,
-        OVRRequirement: posAbilityRecord?.OVRRequirement ?? null,
-        DraftPositionRequirement: posAbilityRecord?.DraftPositionRequirement ?? null,
-        IconId: ability.IconId,
-      });
+      if (gameYear < FranchiseUtils.YEARS.M27) {
+        signatureAbilities[key][abilityType].push({
+          assetId,
+          binary: finalBin,
+          Ability: ability.Name,
+          GUID: ability.GUID,
+          Description: ability.Description,
+          Disable: posAbilityRecord?.Disable ?? null,
+          ArchetypeRequirement: posAbilityRecord?.ArchetypeRequirement ?? null,
+          MaxSlotPosition: posAbilityRecord?.MaxSlotPosition ?? null,
+          MinSlotPosition: posAbilityRecord?.MinSlotPosition ?? null,
+          OVRRequirement: posAbilityRecord?.OVRRequirement ?? null,
+          DraftPositionRequirement: posAbilityRecord?.DraftPositionRequirement ?? null,
+          IconId: ability.IconId,
+        });
+      } else {
+        signatureAbilities[key][abilityType].push({
+          assetId,
+          binary: finalBin,
+          Ability: ability.Name,
+          GUID: ability.GUID,
+          Description: ability.Description,
+          DescriptionSilver: ability.DescriptionSilver,
+          DescriptionGold: ability.DescriptionGold,
+          Disable: posAbilityRecord?.Disable ?? null,
+          ArchetypeRequirement: posAbilityRecord?.ArchetypeRequirement ?? null,
+          MaxSlotPosition: posAbilityRecord?.MaxSlotPosition ?? null,
+          MinSlotPosition: posAbilityRecord?.MinSlotPosition ?? null,
+          OVRRequirement: posAbilityRecord?.OVRRequirement ?? null,
+          DraftPositionRequirement: posAbilityRecord?.DraftPositionRequirement ?? null,
+          IconId: ability.IconId,
+        });
+      }
     }
   }
+
   const flatAbilities = [];
 
   for (const [positionKey, positionData] of Object.entries(signatureAbilities)) {
@@ -145,6 +164,49 @@ franchise.on("ready", async function () {
       flatAbilities.push({ assetId, binary, position, activeAbility: false, ...rest });
     }
   }
+
+  // ----------------------------------------------------------
+  // Append externally-unlocked abilities from SignatureAbility
+  // (skip any already included from the position-based pass,
+  // by binary ref or by ability name)
+  // ----------------------------------------------------------
+  /*const includedBinaries = new Set(flatAbilities.map((a) => a.binary));
+  const includedNames = new Set(flatAbilities.map((a) => a.Ability));
+
+  for (let abilityRow = 0; abilityRow < SignatureAbility.header.recordCapacity; abilityRow++) {
+    const ability = SignatureAbility.records[abilityRow];
+    if (!ability) continue;
+    if (!ability.UnlockedExternally) continue;
+    if (!ability.Name || ability.Name.trim() === "") continue;
+    if (includedNames.has(ability.Name)) continue;
+
+    const binRef = getBinaryReferenceData(signatureAbilityTableId, abilityRow);
+    const assetRef = FranchiseUtils.bin2Dec(binRef);
+    const assetId = allAssets.find((a) => a.reference === assetRef)?.assetId;
+    const finalBin = FranchiseUtils.dec2bin(assetId, 2);
+
+    if (includedBinaries.has(finalBin)) continue;
+
+    flatAbilities.push({
+      assetId,
+      binary: finalBin,
+      position: null,
+      activeAbility: false,
+      Ability: ability.Name,
+      GUID: ability.GUID,
+      Description: ability.Description,
+      Disable: false,
+      ArchetypeRequirement: "Invalid_",
+      MaxSlotPosition: 5,
+      MinSlotPosition: 1,
+      OVRRequirement: 0,
+      DraftPositionRequirement: "Invalid_",
+      IconId: ability.IconId,
+    });
+
+    includedBinaries.add(finalBin);
+    includedNames.add(ability.Name);
+  }*/
 
   writeJSON(flatAbilities, "abilities.json");
 });

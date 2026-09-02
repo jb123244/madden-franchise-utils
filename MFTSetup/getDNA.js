@@ -38,7 +38,7 @@ async function buildPersonaDnaJson(franchise, baseDnaArray, dnaRefTable, baseDna
   for (const col of FranchiseUtils.getColumnNames(exclusionAssignmentArrayRecord)) {
     const assignmentRecord = await FranchiseUtils.getReferencedRecord(franchise, exclusionAssignmentArrayRecord[col]);
     if (!assignmentRecord) continue;
-
+    
     const dnaEntry = dnaByValue.get(assignmentRecord.Value);
     if (!dnaEntry) continue; // not in the Value lookup -> excluded from output regardless
 
@@ -57,18 +57,74 @@ async function buildPersonaDnaJson(franchise, baseDnaArray, dnaRefTable, baseDna
   const filteredDnaArray = baseDnaArray
     .filter((entry) => includedRows.has(entry.Row))
     .map((entry) => dnaByRow.get(entry.Row));
-
   FranchiseUtils.convertArrayToJSONFile(filteredDnaArray, outputFileName);
+}
+
+async function buildPersonaFocusJson(franchise, focusTable, outputFileName) {
+  const focusArray = [];
+  for (const record of focusTable.records) {
+    const personaFocusRecord = await FranchiseUtils.getReferencedRecord(franchise, record.Asset);
+    if (!personaFocusRecord) continue;
+
+    const entry = {
+      Title: personaFocusRecord.Title,
+      Description: personaFocusRecord.Description,
+      Value: record.Value,
+      Exclusions: [],
+    };
+
+    const exclusionArrayRecord = await FranchiseUtils.getReferencedRecord(franchise, personaFocusRecord.Exclusions);
+    if (exclusionArrayRecord) {
+      for (const excCol of FranchiseUtils.getColumnNames(exclusionArrayRecord)) {
+        const excludedRecord = await FranchiseUtils.getReferencedRecord(franchise, exclusionArrayRecord[excCol]);
+        if (!excludedRecord) continue;
+        const { row: excludedRow } = FranchiseUtils.getRowAndTableIdFromRef(exclusionArrayRecord[excCol]);
+        entry.Exclusions.push(excludedRow);
+      }
+    }
+
+    focusArray.push(entry);
+  }
+  FranchiseUtils.convertArrayToJSONFile(focusArray, outputFileName);
+}
+
+async function buildPersonaMindsetJson(franchise, mindsetTable, outputFileName) {
+  const mindsetArray = [];
+  for (const record of mindsetTable.records) {
+    const personaMindsetRecord = await FranchiseUtils.getReferencedRecord(franchise, record.Asset);
+    if (!personaMindsetRecord) continue;
+
+    mindsetArray.push({
+      Description: personaMindsetRecord.Description,
+      Value: record.Value,
+    });
+  }
+  FranchiseUtils.convertArrayToJSONFile(mindsetArray, outputFileName);
 }
 
 franchise.on("ready", async function () {
   const personaDnaTable = franchise.getTableByUniqueId(1431993561);
   const dnaRefTable = franchise.getTableByUniqueId(113243260);
   const tempDnaRefTable = franchise.getTableByUniqueId(4084147475);
-  await FranchiseUtils.readTableRecords([personaDnaTable, dnaRefTable, tempDnaRefTable]);
+  const personaFocusTable = franchise.getTableByUniqueId(3989994302);
+  const personaMindsetTable = franchise.getTableByUniqueId(3919722369);
 
-  const baseDnaArray = await FranchiseUtils.getTableDataAsArray(franchise, personaDnaTable, {includeBinary: false, includeAssetId: false, includeRow: true});
+  await FranchiseUtils.readTableRecords([
+    personaDnaTable,
+    dnaRefTable,
+    tempDnaRefTable,
+    personaFocusTable,
+    personaMindsetTable,
+  ]);
+
+  const baseDnaArray = await FranchiseUtils.getTableDataAsArray(franchise, personaDnaTable, {
+    includeBinary: false,
+    includeAssetId: false,
+    includeRow: true,
+  });
 
   await buildPersonaDnaJson(franchise, baseDnaArray, dnaRefTable, true, "PersonaDNA.json");
   await buildPersonaDnaJson(franchise, baseDnaArray, tempDnaRefTable, false, "TempPersonaDNA.json");
+  await buildPersonaFocusJson(franchise, personaFocusTable, "PersonaFocus.json");
+  await buildPersonaMindsetJson(franchise, personaMindsetTable, "PersonaMindset.json");
 });

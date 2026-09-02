@@ -45,9 +45,19 @@ const GAME_TYPES = {
 };
 
 const YEARS_BY_GAME = {
-  [GAME_TYPES.MADDEN]: [YEARS.M19, YEARS.M20, YEARS.M21, YEARS.M22, YEARS.M23, YEARS.M24, YEARS.M25, YEARS.M26, YEARS.M27],
+  [GAME_TYPES.MADDEN]: [
+    YEARS.M19,
+    YEARS.M20,
+    YEARS.M21,
+    YEARS.M22,
+    YEARS.M23,
+    YEARS.M24,
+    YEARS.M25,
+    YEARS.M26,
+    YEARS.M27,
+  ],
   [GAME_TYPES.CFB]: [YEARS.M27],
-}
+};
 
 // TYPES OF SAVE FILES
 const SAVE_TYPES = {
@@ -295,7 +305,7 @@ function init(validGameYears, options = {}, validGameTypes = [GAME_TYPES.MADDEN]
   const {
     isAutoUnemptyEnabled = false,
     isFtcFile = false,
-    promptForBackup = true, 
+    promptForBackup = true,
     customYearMessage = null,
     customGameTypeMessage = null,
     customFranchiseMessage = null,
@@ -343,11 +353,17 @@ function init(validGameYears, options = {}, validGameTypes = [GAME_TYPES.MADDEN]
  * @param {string} [gameType=GAME_TYPES.MADDEN] - The type of game (Madden or CFB).
  * @returns {Object} - The selected Franchise object.
  */
-function selectFranchiseFile(gameYear, isAutoUnemptyEnabled = false, isFtcFile = false, customMessage = null, gameType = GAME_TYPES.MADDEN) {
+function selectFranchiseFile(
+  gameYear,
+  isAutoUnemptyEnabled = false,
+  isFtcFile = false,
+  customMessage = null,
+  gameType = GAME_TYPES.MADDEN,
+) {
   const isCfb = gameType === GAME_TYPES.CFB;
-  
-  const savesFolderName = isCfb ? 'EA SPORTS College Football' : 'Madden NFL';
-  
+
+  const savesFolderName = isCfb ? "EA SPORTS College Football" : "Madden NFL";
+
   const documentsDir = path.join(os.homedir(), `Documents\\${savesFolderName} ${gameYear}\\saves\\`);
   const oneDriveDir = path.join(os.homedir(), `OneDrive\\Documents\\${savesFolderName} ${gameYear}\\saves\\`);
   const defaultPath = fs.existsSync(documentsDir) ? documentsDir : fs.existsSync(oneDriveDir) ? oneDriveDir : null;
@@ -358,7 +374,13 @@ function selectFranchiseFile(gameYear, isAutoUnemptyEnabled = false, isFtcFile =
     );
   }
 
-  const filePrefix = isFtcFile ? (isCfb ? CFB_FTC_FILE_INIT_KWD : FTC_FILE_INIT_KWD) : (isCfb ? CFB_BASE_FILE_INIT_KWD : BASE_FILE_INIT_KWD);
+  const filePrefix = isFtcFile
+    ? isCfb
+      ? CFB_FTC_FILE_INIT_KWD
+      : FTC_FILE_INIT_KWD
+    : isCfb
+      ? CFB_BASE_FILE_INIT_KWD
+      : BASE_FILE_INIT_KWD;
   let defaultMessage = `Please enter the name of your ${savesFolderName} ${gameYear} franchise file. Either give the full path of the file OR just give the file name (such as CAREER-BEARS) if it's in your Documents folder. Or, enter 0 to exit.`;
   if (!defaultPath) {
     defaultMessage = `Please enter the full path to your ${savesFolderName} ${gameYear} franchise file. Or, enter 0 to exit.`;
@@ -381,13 +403,21 @@ function selectFranchiseFile(gameYear, isAutoUnemptyEnabled = false, isFtcFile =
         const franchisePathUpper = upperCaseFileName.startsWith(filePrefix)
           ? path.join(defaultPath, upperCaseFileName)
           : upperCaseFileName.replace(new RegExp("/", "g"), "\\");
-        const franchise = new Franchise(franchisePathUpper, { autoUnempty: isAutoUnemptyEnabled, gameYearOverride: isFtcFile ? gameYear : null, gameTypeOverride: isFtcFile ? gameType : null });
+        const franchise = new Franchise(franchisePathUpper, {
+          autoUnempty: isAutoUnemptyEnabled,
+          gameYearOverride: isFtcFile ? gameYear : null,
+          gameTypeOverride: isFtcFile ? gameType : null,
+        });
         return franchise;
       } catch (e) {
         const franchisePath = fileName.startsWith(filePrefix)
           ? path.join(defaultPath, fileName)
           : fileName.replace(new RegExp("/", "g"), "\\");
-        const franchise = new Franchise(franchisePath, { autoUnempty: isAutoUnemptyEnabled, gameYearOverride: isFtcFile ? gameYear : null, gameTypeOverride: isFtcFile ? gameType : null });
+        const franchise = new Franchise(franchisePath, {
+          autoUnempty: isAutoUnemptyEnabled,
+          gameYearOverride: isFtcFile ? gameYear : null,
+          gameTypeOverride: isFtcFile ? gameType : null,
+        });
         return franchise;
       }
     } catch (e) {
@@ -405,14 +435,25 @@ function selectFranchiseFile(gameYear, isAutoUnemptyEnabled = false, isFtcFile =
  * @param {boolean} [isFtcFile=false] - Whether the file is an FTC file. You can almost always leave this as false.
  * @returns {Object} - The selected Franchise object.
  */
-async function selectFranchiseFileAsync(gameYear, isAutoUnemptyEnabled = false, isFtcFile = false, gameType = GAME_TYPES.MADDEN) {
+async function selectFranchiseFileAsync(
+  gameYear,
+  isAutoUnemptyEnabled = false,
+  isFtcFile = false,
+  gameType = GAME_TYPES.MADDEN,
+) {
   const isCfb = gameType === GAME_TYPES.CFB;
-  
-  const savesFolderName = isCfb ? 'EA SPORTS College Football' : 'Madden NFL';
-  
+
+  const savesFolderName = isCfb ? "EA SPORTS College Football" : "Madden NFL";
+
   const documentsDir = path.join(os.homedir(), `Documents\\${savesFolderName} ${gameYear}\\saves\\`);
   const oneDriveDir = path.join(os.homedir(), `OneDrive\\Documents\\${savesFolderName} ${gameYear}\\saves\\`);
-  const filePrefix = isFtcFile ? (isCfb ? CFB_FTC_FILE_INIT_KWD : FTC_FILE_INIT_KWD) : (isCfb ? CFB_BASE_FILE_INIT_KWD : BASE_FILE_INIT_KWD);
+  const filePrefix = isFtcFile
+    ? isCfb
+      ? CFB_FTC_FILE_INIT_KWD
+      : FTC_FILE_INIT_KWD
+    : isCfb
+      ? CFB_BASE_FILE_INIT_KWD
+      : BASE_FILE_INIT_KWD;
 
   let defaultPath;
   if (fs.existsSync(documentsDir)) {
@@ -2221,7 +2262,7 @@ async function deleteExcessFreeAgents(franchise, options = {}) {
         `References remaining for ${freeAgentRecord.FirstName} ${freeAgentRecord.LastName} (Row ${freeAgentRecord.index}).`,
       );
       references.forEach((table) => {
-        if (table.name === 'HistoryEntry') return;
+        if (table.name === "HistoryEntry") return;
         console.log(`${table.tableId}: ${table.name}`);
       });
     }
@@ -3490,23 +3531,80 @@ function resolveBinaryToTableRow(franchise, binaryAssetId) {
   let assetRef;
   for (const asset of franchise.assetTable) {
     if (asset.assetId === assetId) {
-      assetRef = asset.reference;   // <- this is your 265158657
-      console.log(assetRef)
+      assetRef = asset.reference; // <- this is your 265158657
+      console.log(assetRef);
       break;
     }
   }
 
   if (assetRef === undefined) return null;
 
-  const info = franchise.getReferenceFromAssetId(assetId)
-  console.log(info)
+  const info = franchise.getReferenceFromAssetId(assetId);
+  console.log(info);
   // assetRef is decimal form of the binary reference
   const binaryRef = dec2bin(assetRef);
-  console.log(binaryRef)
+  console.log(binaryRef);
 
   const { tableId, row } = getRowAndTableIdFromRef(binaryRef);
 
   return { tableId, row, assetId, assetRef };
+}
+
+function buildAssetMap(franchise) {
+  const assetMap = new Map();
+  for (const asset of franchise.assetTable) {
+    assetMap.set(asset.reference, asset.assetId);
+  }
+  return assetMap;
+}
+
+async function extractRecordData(franchise, table, record, options = {}) {
+  const {
+    columnsToReturn = null,
+    includeRow = true,
+    includeAssetId = true,
+    includeBinary = true,
+    convertRefToRowNo = false,
+    loadReferenceCols = false,
+    assetMap = null,
+  } = options;
+
+  const map = assetMap ?? buildAssetMap(franchise);
+  const allColumns = getColumnNames(table);
+  const columns = columnsToReturn ? allColumns.filter((col) => columnsToReturn.includes(col)) : allColumns;
+
+  const binRef = getBinaryReferenceData(table.header.tableId, record.index);
+  const assetRef = bin2Dec(binRef);
+  const assetId = map.get(assetRef);
+  if (assetId === undefined) return null;
+  const binary = dec2bin(assetId, 2);
+
+  const rowData = {};
+  if (includeRow) rowData.Row = record.index;
+  if (includeAssetId) rowData.AssetId = assetId;
+  if (includeBinary) rowData.Binary = binary;
+
+  for (const col of columns) {
+    const value = record[col];
+    if (convertRefToRowNo && isReferenceColumn(record, col, true)) {
+      rowData[col] = value === ZERO_REF ? -1 : getRowFromRef(value);
+    } else if (loadReferenceCols && isReferenceColumn(record, col, true) && value !== ZERO_REF) {
+      const { row, tableId } = getRowAndTableIdFromRef(value);
+      const refTable = franchise.getTableById(tableId);
+      if (refTable === undefined) {
+        rowData[col] = value;
+      } else {
+        await refTable.readRecords();
+        const refBinary = getBinaryReferenceData(refTable.header.tableId, row);
+        const refAsset = bin2Dec(refBinary);
+        const refAssetId = map.get(refAsset);
+        rowData[col] = dec2bin(refAssetId, 2);
+      }
+    } else {
+      rowData[col] = value;
+    }
+  }
+  return rowData;
 }
 
 /**
@@ -3535,63 +3633,12 @@ function resolveBinaryToTableRow(franchise, binaryAssetId) {
  * });
  */
 async function getTableDataAsArray(franchise, table, options = {}) {
-  const {
-    columnsToReturn = null,
-    includeRow = true,
-    includeAssetId = true,
-    includeBinary = true,
-    convertRefToRowNo = false,
-    loadReferenceCols = false,
-  } = options;
-
-  const assetMap = new Map();
-  for (const asset of franchise.assetTable) {
-    assetMap.set(asset.reference, asset.assetId);
-  }
-
-  const allColumns = getColumnNames(table);
-  const columns = columnsToReturn ? allColumns.filter((col) => columnsToReturn.includes(col)) : allColumns;
-
+  const assetMap = buildAssetMap(franchise);
   const results = [];
-
   for (const record of getActiveRecords(table)) {
-    const binRef = getBinaryReferenceData(table.header.tableId, record.index);
-    const assetRef = bin2Dec(binRef);
-    const assetId = assetMap.get(assetRef);
-    if (assetId === undefined) continue;
-
-    const binary = dec2bin(assetId, 2);
-
-    const rowData = {};
-
-    if (includeRow) rowData.Row = record.index;
-    if (includeAssetId) rowData.AssetId = assetId;
-    if (includeBinary) rowData.Binary = binary;
-
-    for (const col of columns) {
-      const value = record[col];
-
-      if (convertRefToRowNo && isReferenceColumn(record, col, true)) {
-        rowData[col] = value === ZERO_REF ? -1 : getRowFromRef(value);
-      } else if (loadReferenceCols && isReferenceColumn(record, col, true) && value !== ZERO_REF) {
-        const { row, tableId } = getRowAndTableIdFromRef(value);
-        const refTable = franchise.getTableById(tableId);
-        if (refTable === undefined) {
-          rowData[col] = value;
-        } else {
-          await refTable.readRecords();
-          const refBinary = getBinaryReferenceData(refTable.header.tableId, row);
-          const refAsset = bin2Dec(refBinary);
-          const refAssetId = assetMap.get(refAsset);
-          rowData[col] = dec2bin(refAssetId, 2);
-        }
-      } else {
-        rowData[col] = value;
-      }
-    }
-    results.push(rowData);
+    const rowData = await extractRecordData(franchise, table, record, { ...options, assetMap });
+    if (rowData) results.push(rowData);
   }
-
   return results;
 }
 
@@ -3800,6 +3847,8 @@ module.exports = {
   getActiveRecords,
   getEnumValuesForField,
   getCollege,
+  buildAssetMap,
+  extractRecordData,
   getTableDataAsArrayFromId,
   getTableDataAsArray,
   convertArrayToJSONFile,
