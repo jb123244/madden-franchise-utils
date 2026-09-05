@@ -1,139 +1,76 @@
-
-
-
-
-// Requirements
 const path = require('path');
-const prompt = require('prompt-sync')();
 const fs = require('fs');
-const directoryPath = path.join(__dirname, 'schedules');
-const FranchiseUtils = require('../Utils/FranchiseUtils');
-const TRANSFER_SCHEDULE_FUNCTIONS = require('./transferScheduleFromJson');
-const autoUnempty = true;
+const Franchise = require('madden-franchise');
+const prompt = require('prompt-sync')({ sigint: true });
 
-const validGames = [
-	FranchiseUtils.YEARS.M24,
-	FranchiseUtils.YEARS.M25,
-  FranchiseUtils.YEARS.M26
-];
-
-console.log("In this program, you can insert any previous year's NFL schedule into your Franchise File.");
-console.log(`This only works with Madden ${FranchiseUtils.formatListString(validGames)} Franchise Files, and if your Franchise file is in the PreSeason.`);
-
-
-// Set up franchise file
-const franchise = FranchiseUtils.init(validGames, {isAutoUnemptyEnabled: autoUnempty});
-const tables = FranchiseUtils.getTablesObject(franchise);
-
-let minYear = 1970;
-let maxYear = 2025;
-// Dynamically determine min and max year from folder
-const files = fs.readdirSync(directoryPath);
-const years = files.map(file => {
-  try
-  {
-    return parseInt(file.split('.')[0]);
-  }
-  catch (error)
-  {
-    return 0;
-  }
-});
-minYear = Math.min(...years);
-maxYear = Math.max(...years);
-
-async function promptUser() {
-  let selectedYear;
-
-  while (true) {
-    // Ask the user for input
-    const inputYear = prompt(`Enter the year of the schedule you would like to use (between ${minYear} and ${maxYear}): `);
-
-    // Parse the input as an integer
-    selectedYear = parseInt(inputYear, 10);
-    if (selectedYear === 0)
-    {
-        // Move to special custom JSON case
-        break;
-    }
-    // Check if the input is a valid year
-    if (!Number.isNaN(selectedYear) && selectedYear >= minYear && selectedYear <= maxYear) 
-    {
-        break; // Exit the loop if the input is valid
-    }
-
-    console.log(`Invalid input. Please enter a year between ${minYear} and ${maxYear}.`);
-  }
-
-  if (selectedYear === 0)
-  {
-    // Custom JSON file case
-    const customJsonPath = prompt('Enter the full path of the custom JSON file: ');
-    try
-    {
-      const customJson = JSON.parse(fs.readFileSync(customJsonPath, 'utf8'));
-      return customJson;
-    }
-    catch (error)
-    {
-      console.log(`Error reading or parsing custom JSON file: ${error}`);
-      FranchiseUtils.EXIT_PROGRAM();
-    }
-  }
-  else
-  {
-    const sourceScheduleJson = await processSelectedYear(selectedYear);
-    return sourceScheduleJson;
-  }
-  // Valid input, process the selected year
+// Check for arguments or prompt for file path
+let filePath = process.argv[2];
+if (!filePath) {
+  filePath = prompt('Enter the full path to your Madden 27 franchise file: ').replace(/^"|"$/g, '');
 }
 
-// Function to process the selected year
-async function processSelectedYear(year) {
-  const fileName = `${year}.json`;
-  const filePath = path.join(directoryPath, fileName);
-
-  try {
-    const data = fs.readFileSync(filePath, 'utf8');
-    const sourceScheduleJson = JSON.parse(data);
-
-    return sourceScheduleJson;
-
-  } catch (error) {
-    console.error(`Error reading or parsing JSON file ${fileName}:`, error);
-    FranchiseUtils.EXIT_PROGRAM();
-  }
+if (!fs.existsSync(filePath)) {
+  console.error(`File not found at path: ${filePath}`);
+  process.exit(1);
 }
 
+console.log(`Loading franchise file...`);
+const franchise = new Franchise(filePath);
 
+franchise.on('ready', async () => {
+  const gameYear = franchise.header.gameYear;
+  console.log(`Detected Franchise Game Year: ${gameYear}`);
 
-franchise.on('ready', async function () {
+  // Allow Madden 27 explicitly alongside Madden 26
+  if (gameYear !== 27 && gameYear !== 26) {
+    console.error(`Error: This tool targets Madden 27 files (GameYear 27). Detected: ${gameYear}`);
+    process.exit(1);
+  }
+
+  // Load Madden 27 team lookup
+  const lookupPath = path.join(__dirname, `../Utils/JsonLookups/teamLookup_${gameYear}.json`);
+  if (!fs.existsSync(lookupPath)) {
+    console.error(`Could not find team lookup file at: ${lookupPath}`);
+    process.exit(1);
+  }
+
+  const teamLookup = JSON.parse(fs.readFileSync(lookupPath, 'utf8'));
+
+  // Prompt for year schedule selection
+  const scheduleYear = prompt('Enter the retro schedule year to import (e.g. 1998, 2004): ');
+  const schedulePath = path.join(__dirname, `./schedules/schedule_${scheduleYear}.json`);
+
+  if (!fs.existsSync(schedulePath)) {
+    console.error(`Schedule file for year ${scheduleYear} does not exist at ${schedulePath}`);
+    process.exit(1);
+  }
+
+  const scheduleData = JSON.parse(fs.readFileSync(schedulePath, 'utf8'));
+  console.log(`Applying ${scheduleYear} schedule to Madden ${gameYear} franchise...`);
+
+  const seasonGameTable = franchise.getTableByName('SeasonGame');
+  await seasonGameTable.readRecords();
+
+  let modifiedCount = 0;
   
-  // Start the user prompt
-  const sourceScheduleJson = await promptUser();
-  const seasonInfoTable = franchise.getTableByUniqueId(tables.seasonInfoTable);
-  await seasonInfoTable.readRecords();
-  const currentStage = seasonInfoTable.records[0]['CurrentStage'];
+  // Iterate through schedule games and map to Madden 27 table rows
+  scheduleData.forEach((game) => {
+    const record = seasonGameTable.records.find(r => r.GameNumber === game.gameNumber || r.SeasonGameId === game.id);
+    if (record) {
+      if (game.homeTeam && teamLookup[game.homeTeam]) {
+        record.HomeTeam = teamLookup[game.homeTeam];
+      }
+      if (game.awayTeam && teamLookup[game.awayTeam]) {
+        record.AwayTeam = teamLookup[game.awayTeam];
+      }
+      modifiedCount++;
+    }
+  });
 
-
-  if (currentStage !== 'PreSeason') {
-    console.log("Selected file is not in the PreSeason. Only Franchise Files in the PreSeason can have schedules inserted.")
-    FranchiseUtils.EXIT_PROGRAM();
-
-  }
-
-  TRANSFER_SCHEDULE_FUNCTIONS.setFranchise(franchise);
-  let transferStatus = await TRANSFER_SCHEDULE_FUNCTIONS.transferSchedule(sourceScheduleJson);
-  if(!transferStatus)
-  {
-    console.log("Unable to transfer schedule.");
-  }
-  else
-  {
-    console.log("Successfully inserted schedule into your franchise file.");
-    await FranchiseUtils.saveFranchiseFile(franchise);
-  }
-  FranchiseUtils.EXIT_PROGRAM();
+  console.log(`Successfully updated ${modifiedCount} schedule entries.`);
   
+  // Save franchise file back to disk
+  await franchise.save();
+  console.log(`Franchise file successfully saved!`);
+  process.exit(0);
 });
-
