@@ -1,4 +1,4 @@
-
+npx @yao-pkg/pkg retroSchedules/transferRetroSchedule.js --target node18-win-x64 --output transferRetroSchedule_M27.exe
 
 
 
